@@ -1078,7 +1078,7 @@
         <div class="coach-avatar">🤖</div>
         <div>
           <div class="coach-title" data-i18n="coach_title">AI Business Coach</div>
-          <div class="coach-sub" data-i18n="coach_sub">Powered by Claude · Business Consultant</div>
+          <div class="coach-sub" data-i18n="coach_sub">Powered by Gemini · Business Consultant</div>
         </div>
       </div>
 
@@ -1170,6 +1170,11 @@
 
 <script>
 // ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// ▶▶ SET YOUR GEMINI API KEY HERE (get free key at aistudio.google.com)
+// ═══════════════════════════════════════════════════════════════
+window.GEMINI_API_KEY = '';  // ← Paste your GEMINI_API_KEY between the quotes
+
 // ═══════════════════════════════════════════════════════════════
 // TELEGRAM MINI APP INIT
 // ═══════════════════════════════════════════════════════════════
@@ -1582,7 +1587,7 @@ function resetSale() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// AI COACH (calls Anthropic API via proxy)
+// AI COACH (calls Gemini API)
 // ═══════════════════════════════════════════════════════════════
 
 function askQuick(q) {
@@ -1631,29 +1636,42 @@ ${topList || 'No sales data yet'}
 CONSIGNMENT ON HAND:
 ${csLines || 'None logged'}`;
 
+  // Get Gemini API key from meta tag or window config
+  const geminiKey = window.GEMINI_API_KEY || document.querySelector('meta[name="gemini-key"]')?.content || '';
+  if (!geminiKey) {
+    thinking.remove();
+    addMsg('⚠️ GEMINI_API_KEY not configured in miniapp.html. Set window.GEMINI_API_KEY at the top of the script.', 'bot');
+    return;
+  }
+
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        system: sysPrompt,
-        messages: [{ role: 'user', content: q }],
-      })
-    });
+    const resp = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            role: 'user',
+            parts: [{ text: sysPrompt + '\n\nQuestion: ' + q }]
+          }]
+        })
+      }
+    );
 
     const data = await resp.json();
     thinking.remove();
 
-    if (data.content && data.content[0]) {
-      addMsg(data.content[0].text, 'bot');
+    if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
+      addMsg(data.candidates[0].content.parts[0].text, 'bot');
     } else if (data.error) {
-      addMsg((t('ai_error_api') || '⚠️ API error: ') + data.error.message + (t('ai_error_key') || '\n\nSet CLAUDE_API_KEY in .env'), 'bot');
+      addMsg('⚠️ Gemini API error: ' + data.error.message, 'bot');
+    } else {
+      addMsg('⚠️ Unexpected response from Gemini. Check your API key.', 'bot');
     }
   } catch(e) {
     thinking.remove();
-    addMsg(t('ai_error_reach') || '⚠️ Could not reach AI Coach. Check your API key in .env.', 'bot');
+    addMsg('⚠️ Could not reach Gemini AI. Check your internet connection and API key.', 'bot');
   }
 }
 
@@ -1922,7 +1940,7 @@ const TRANSLATIONS = {
     sale_new: '＋ NEW SALE',
     // Coach
     coach_title: 'AI Business Coach',
-    coach_sub: 'Powered by Claude · Business Consultant',
+    coach_sub: 'Powered by Gemini · Business Consultant',
     coach_badge: 'AI Consultant',
     qq_sales_lower: '📉 Why are sales lower this week?',
     qq_restock: 'Restock advice',
@@ -1964,7 +1982,7 @@ const TRANSLATIONS = {
     // AI thinking
     ai_thinking: '⏳ Consulting the AI…',
     ai_error_api: '⚠️ API error: ',
-    ai_error_key: '\n\nSet CLAUDE_API_KEY in the bot\'s .env file.',
+    ai_error_key: '\n\nSet GEMINI_API_KEY in the bot\'s .env file.',
     ai_error_reach: '⚠️ Could not reach the AI Coach. Make sure your API key is configured and the bot server is running.',
   },
 
@@ -2010,7 +2028,7 @@ const TRANSLATIONS = {
     sale_recorded: 'ሽያጭ ተመዝግቧል!',
     sale_new: '＋ አዲስ ሽያጭ',
     coach_title: 'AI ቢዝነስ አማካሪ',
-    coach_sub: 'በ Claude የተደገፈ · የቢዝነስ አማካሪ',
+    coach_sub: 'በ Gemini የተደገፈ · የቢዝነስ አማካሪ',
     coach_badge: 'AI አማካሪ',
     qq_sales_lower: '📉 ሽያጮቼ ለምን ዝቅ አሉ?',
     qq_restock: 'የምክር ዕቃ ሙያ',
@@ -2047,7 +2065,7 @@ const TRANSLATIONS = {
     tier_mo: 'ETB/ወር',
     ai_thinking: '⏳ AI እያማከረ…',
     ai_error_api: '⚠️ የ API ስህተት: ',
-    ai_error_key: '\n\nCLAUDE_API_KEY ያዋቅሩ።',
+    ai_error_key: '\n\nGEMINI_API_KEY ያዋቅሩ።',
     ai_error_reach: '⚠️ AI አማካሪው ሊደረስ አልቻለም። API ቁልፉ መዋቀሩን ያረጋግጡ።',
   },
 
@@ -2093,7 +2111,7 @@ const TRANSLATIONS = {
     sale_recorded: 'Gurgurtaan Galmaaye!',
     sale_new: '＋ GURGURTAA HAARAA',
     coach_title: 'AI Gorsaa Biizinasii',
-    coach_sub: 'Claude Irratti Hundaa\'e · Gorsaa Biizinasii',
+    coach_sub: 'Gemini Irratti Hundaa\'e · Gorsaa Biizinasii',
     coach_badge: 'AI Gorsaa',
     qq_sales_lower: '📉 Maaliif gurgurtaan kiyya xiqqaate?',
     qq_restock: 'Gorsa meeshaa guutuu',
@@ -2130,7 +2148,7 @@ const TRANSLATIONS = {
     tier_mo: 'ETB/ji\'a',
     ai_thinking: '⏳ AI mariisaa jira…',
     ai_error_api: '⚠️ Dogoggora API: ',
-    ai_error_key: '\n\nCLAUDE_API_KEY qindeessi.',
+    ai_error_key: '\n\nGEMINI_API_KEY qindeessi.',
     ai_error_reach: '⚠️ AI Gorsaa hin dhaqqabamne. Furtuun API qindaa\'e akka ta\'e mirkaneeffadhu.',
   },
 
@@ -2176,7 +2194,7 @@ const TRANSLATIONS = {
     sale_recorded: 'ሽያጥ ተመዝጊቡ!',
     sale_new: '＋ ሓድሽ ሽያጥ',
     coach_title: 'AI መምህር ቢዝነስ',
-    coach_sub: 'ብ Claude ዝተሓገዘ · ኣማኻሪ ቢዝነስ',
+    coach_sub: 'ብ Gemini ዝተሓገዘ · ኣማኻሪ ቢዝነስ',
     coach_badge: 'AI ኣማኻሪ',
     qq_sales_lower: '📉 ሽያጠይ ስለምንታይ ወረደ?',
     qq_restock: 'ምኽሪ ምርካብ ዕቃ',
@@ -2213,7 +2231,7 @@ const TRANSLATIONS = {
     tier_mo: 'ETB/ወርሒ',
     ai_thinking: '⏳ AI ይምክር ኣሎ…',
     ai_error_api: '⚠️ ጌጋ API: ',
-    ai_error_key: '\n\nCLAUDE_API_KEY ኣዋድድ።',
+    ai_error_key: '\n\nGEMINI_API_KEY ኣዋድድ.',
     ai_error_reach: '⚠️ AI ኣምኻሪ ኣይተረኽበን። API key ከም ዝተሓዘ ርግጸኛ ኩን።',
   }
 };
